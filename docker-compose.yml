@@ -1,0 +1,126 @@
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.10.5    
+  env_file:
+    - .env 
+  environment:
+    # ====== Airflow Settings ======
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:user1234@postgres_db:5432/airflow    
+    AIRFLOW__WEBSERVER__SECRET_KEY: 07775000
+    AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: False
+    AIRFLOW__CORE__LOAD_EXAMPLES: False    
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'    
+    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 10
+    _AIRFLOW_WWW_USER_USERNAME: airflow
+    _AIRFLOW_WWW_USER_PASSWORD: airflow@123            
+  volumes:      
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins    
+  user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
+  depends_on:
+    postgres_db:
+      condition: service_healthy
+  networks:
+    - Sales_ELT_network
+
+services: 
+
+# Setup Postgres DB & pgadmin
+  postgres_db:
+    image: postgres:15.1-alpine3.17
+    container_name: Sales_postgres_db
+    volumes:
+      - postgres_db_data:/var/lib/postgresql/data
+      - ./sources:/sources
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user1234
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d airflow -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - Sales_ELT_network  
+  
+  pgadmin:
+    image: dpage/pgadmin4:6.18
+    container_name: Sales_ELT_pgadmin
+    ports:
+      - "5000:80"
+    environment:
+      - "PGADMIN_DEFAULT_EMAIL=pgadmin@admin.com"
+      - "PGADMIN_DEFAULT_PASSWORD=admin"
+    depends_on:
+      - postgres_db
+    networks:
+      - Sales_ELT_network  
+
+# NiFi
+  nifi:
+    build:
+      context: .
+      dockerfile: Dockerfile.nifi
+    container_name: Sales_ELT_nifi
+    ports:
+      - "8085:8080"   # NiFi UI
+    environment:
+      - NIFI_WEB_HTTP_PORT=8080
+      - NIFI_WEB_HTTP_HOST=0.0.0.0    
+    volumes:
+      - nifi_data:/opt/nifi/nifi-current/data
+    depends_on:
+      - postgres_db
+    networks:
+      - Sales_ELT_network  
+
+
+  ##############################
+  ### Airflow Services
+  ##############################
+  airflow-init:    
+    <<: *airflow-common   
+    container_name: Sales_ELT_airflow_init   
+    command: version     
+    environment:      
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:user1234@postgres_db:5432/airflow        
+      
+  airflow-webserver:    
+    container_name: Sales_ELT_airflow_webserver
+    <<: *airflow-common
+    command: airflow webserver
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+    ports:
+      - "8080:8080"    
+       
+    
+  airflow-scheduler:    
+    container_name: Sales_ELT_airflow_scheduler
+    <<: *airflow-common
+    command: airflow scheduler
+    restart: always
+    depends_on:      
+      postgres_db:
+        condition: service_healthy  
+
+volumes:  
+  postgres_db_data:
+  nifi_data:
+
+networks:
+  Sales_ELT_network:
+    driver: bridge  

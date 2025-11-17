@@ -1,0 +1,6 @@
+FROM apache/nifi:1.27.0
+
+ARG POSTGRES_JAR_VERSION=42.7.3           
+
+RUN mkdir -p /opt/nifi/jdbc && \
+    curl -L https://jdbc.postgresql.org/download/postgresql-${POSTGRES_JAR_VERSION}.jar -o /opt/nifi/jdbc/postgresql-${POSTGRES_JAR_VERSION}.jar
