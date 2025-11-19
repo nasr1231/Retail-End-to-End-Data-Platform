@@ -3,7 +3,6 @@ x-airflow-common: &airflow-common
   env_file:
     - .env 
   environment:
-    # ====== Airflow Settings ======
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:user1234@postgres_db:5432/airflow    
     AIRFLOW__WEBSERVER__SECRET_KEY: 07775000
@@ -24,9 +23,8 @@ x-airflow-common: &airflow-common
   networks:
     - Sales_ELT_network
 
-services: 
+services:
 
-# Setup Postgres DB & pgadmin
   postgres_db:
     image: postgres:15.1-alpine3.17
     container_name: Sales_postgres_db
@@ -47,7 +45,7 @@ services:
       start_period: 20s
     networks:
       - Sales_ELT_network  
-  
+
   pgadmin:
     image: dpage/pgadmin4:6.18
     container_name: Sales_ELT_pgadmin
@@ -61,28 +59,24 @@ services:
     networks:
       - Sales_ELT_network  
 
-# NiFi
   nifi:
-    build:
-      context: .
-      dockerfile: Dockerfile.nifi
+    image: apache/nifi:1.27.0
     container_name: Sales_ELT_nifi
     ports:
-      - "8085:8080"   # NiFi UI
+      - "8085:8080"
     environment:
       - NIFI_WEB_HTTP_PORT=8080
-      - NIFI_WEB_HTTP_HOST=0.0.0.0    
+      - NIFI_WEB_HTTP_HOST=0.0.0.0
+      - NIFI_JVM_HEAP_INIT=512m
+      - NIFI_JVM_HEAP_MAX=1g
     volumes:
-      - nifi_data:/opt/nifi/nifi-current/data
+      - nifi_conf:/opt/nifi/nifi-current/conf
     depends_on:
       - postgres_db
+    restart: unless-stopped
     networks:
-      - Sales_ELT_network  
+      - Sales_ELT_network
 
-
-  ##############################
-  ### Airflow Services
-  ##############################
   airflow-init:    
     <<: *airflow-common   
     container_name: Sales_ELT_airflow_init   
@@ -93,7 +87,7 @@ services:
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:user1234@postgres_db:5432/airflow        
-      
+
   airflow-webserver:    
     container_name: Sales_ELT_airflow_webserver
     <<: *airflow-common
@@ -105,9 +99,8 @@ services:
       retries: 5
     restart: always
     ports:
-      - "8080:8080"    
-       
-    
+      - "8082:8080"
+   
   airflow-scheduler:    
     container_name: Sales_ELT_airflow_scheduler
     <<: *airflow-common
@@ -119,8 +112,8 @@ services:
 
 volumes:  
   postgres_db_data:
-  nifi_data:
+  nifi_conf:
 
 networks:
   Sales_ELT_network:
-    driver: bridge  
+    driver: bridge
