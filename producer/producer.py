@@ -58,12 +58,11 @@ CURRENT_RATES = {
 def update_exchange_rates():
     global CURRENT_RATES_DATE, CURRENT_RATES
     today = date.today()
-    
-    # لو النهاردة محدثين خلاص متعملش حاجة
+        
     if CURRENT_RATES_DATE == today:
         return
     
-    logger.info("تحديث أسعار الصرف لليوم %s ...", today)
+    logger.info("Today's price list", today)
     try:
         resp = requests.get("https://api.exchangerate.host/latest?base=USD", timeout=8)
         data = resp.json()
