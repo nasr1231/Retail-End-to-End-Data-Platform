@@ -1,11 +1,13 @@
 FROM apache/airflow:3.0.2-python3.11
 
 RUN pip install --no-cache-dir \
-    "apache-airflow==${AIRFLOW_VERSION}" \    
+    "apache-airflow==${AIRFLOW_VERSION}" \
+    clickhouse-connect==0.8.18 \
     dotenv==0.9.9 \
     pandas==2.1.4 \
     pyarrow==16.1.0 \
-    requests==2.32.3 \    
+    requests==2.32.3 \
+    minio==7.2.16 \
     apache-airflow-providers-apache-spark==5.3.2
 
 USER root

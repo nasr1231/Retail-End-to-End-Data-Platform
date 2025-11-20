@@ -645,3 +645,4 @@ volumes:
   postgres:
   redis_data:
   pgadmin_data:
+  nifi_conf:
