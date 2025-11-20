@@ -50,6 +50,18 @@
     {"name": "status",            "type": "string"},
     {"name": "order_group_id",    "type": "string"},
     {
+      "name": "unit_price_usd",
+      "type": "double",
+      "default": 0.0,
+      "doc": "Unit price of the product in USD"
+    },
+    {      
+      "name": "line_total_amount",
+      "type": "double",
+      "default": 0.0,
+      "doc": "Total price for this line item (quantity × unit_price_usd)"
+    },
+    {
       "name": "event_timestamp",   "type": "string",
       "logicalType": "timestamp-millis",
       "doc": "Format: dd-MM-yyyy HH:mm:ss"
