@@ -1,0 +1,15 @@
+FROM python:3.11.13-bookworm
+
+ENV PYTHONBUFFERED=1
+
+RUN pip install --no-cache-dir \
+    python-dotenv==1.1.1 \
+    confluent-kafka[avro]==2.11.0 \
+    psycopg2-binary==2.9.10 \
+    redis==5.2.0 \
+    Faker==32.0.0
+
+WORKDIR /home/app
+COPY . /home/app/
+
+CMD ["python", "producer.py"]
