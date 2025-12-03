@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==================== GENERAL CONFIG ====================
-NUM_WORKERS = 2
+NUM_WORKERS = 4
 KAFKA_TOPIC = os.environ['KAFKA_TOPIC']
-EVENT_INTERVAL_SECONDS = 0.3
+EVENT_INTERVAL_SECONDS = 0.1
 NEW_USER_SESSION_PROBABILITY = 0.250
 
 # ===================== COUNTRIES ENUM =====================

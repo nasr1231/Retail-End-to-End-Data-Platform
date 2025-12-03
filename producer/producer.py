@@ -62,7 +62,7 @@ def update_exchange_rates():
     if CURRENT_RATES_DATE == today:
         return
     
-    logger.info("Today's price list", today)
+    logger.info("Today's price list %s", today)
     try:
         resp = requests.get("https://api.exchangerate.host/latest?base=USD", timeout=8)
         data = resp.json()
@@ -137,8 +137,8 @@ def get_next_order_number() -> int:
     This prevents the producer from crashing if Redis is not available. Note that the
     local counter is process-local (not shared across workers) and only used as a fallback.
     """
-    global _local_order_counters
-    global _local_order_counter, _last_redis_warning, _redis_available
+    global _local_order_counter
+    global _last_redis_warning, _redis_available
     # If redis is currently marked available, prefer it
     if _redis_available:
         try:
@@ -167,6 +167,53 @@ FAKERS = {
     Country.ITALY: Faker("it_IT"),
 }
 
+
+def _get_state_abbr_and_name(faker_obj) -> tuple[str, str]:
+    """Return a (abbr, name) pair for administrative region.
+
+    Works across Faker locales and versions by trying several provider
+    method names and falling back to sensible defaults.
+    """
+    name = None
+    abbr = None
+
+    # Try common methods that return full state/province name
+    for name_fn in ("state", "province", "administrative_unit", "state_name", "subdivision"):
+        if hasattr(faker_obj, name_fn) and callable(getattr(faker_obj, name_fn)):
+            try:
+                name = getattr(faker_obj, name_fn)()
+                if name:
+                    break
+            except Exception:
+                name = None
+
+    # Fallback to city if we couldn't get a region name
+    if not name:
+        try:
+            name = faker_obj.city()
+        except Exception:
+            name = "N/A"
+
+    # Try common methods that return abbreviated form
+    for abbr_fn in ("state_abbr", "province_abbr", "administrative_unit_abbr", "state_abbrev"):
+        if hasattr(faker_obj, abbr_fn) and callable(getattr(faker_obj, abbr_fn)):
+            try:
+                abbr = getattr(faker_obj, abbr_fn)()
+                if abbr:
+                    break
+            except Exception:
+                abbr = None
+
+    # Last-resort abbreviation: first two letters of the name
+    if not abbr:
+        if name and name != "N/A":
+            letters = [c for c in name if c.isalpha()]
+            abbr = ("".join(letters)[:2] or "N/A").upper()
+        else:
+            abbr = "N/A"
+
+    return abbr, name
+
 # ==================== LOAD PRODUCTS FROM DB ====================
 def load_products():
     conn = psycopg2.connect(**PG_CONN)
@@ -180,7 +227,7 @@ def load_products():
             logger.warning("Skipping product with invalid key: %s", row[0])
             continue
         raw_price = row[1]
-        # Normalize price string: remove whitespace, currency symbols and thousands separators
+        
         s = str(raw_price).strip()
         s = s.replace(',', '')
         s = re.sub(r"[^0-9.\-]", "", s)
@@ -196,20 +243,48 @@ def load_products():
     return prods
 
 # ==================== LOAD STORES BY COUNTRY ====================
-def load_stores_by_country():
+def load_stores_by_country():    
+    DB_TO_ENUM = {
+        'Australia': Country.AUSTRALIA,
+        'United States': Country.USA,
+        'Canada': Country.CANADA,
+        'France': Country.FRANCE,
+        'United Kingdom': Country.UK,
+        'Germany': Country.GERMANY,
+        'Italy': Country.ITALY,
+        'Netherlands': Country.NETHERLANDS,
+    }
+
     conn = psycopg2.connect(**PG_CONN)
     cur = conn.cursor()
-    cur.execute("SELECT storekey, country FROM stores WHERE storekey > 0")
+    cur.execute("SELECT storekey, country FROM stores WHERE storekey >= 0")
     stores_by_country = {}
-    for sk, code in cur.fetchall():
-        try:
-            country = Country[code]
-            stores_by_country.setdefault(country, []).append(int(sk))
-        except KeyError:
+    
+    for sk, db_country in cur.fetchall():
+        if db_country == 'Online':
             continue
+        country_enum = DB_TO_ENUM.get(db_country.strip())
+        if country_enum:
+            stores_by_country.setdefault(country_enum, []).append(int(sk))
+    
     cur.close()
     conn.close()
+        
+    for c in [
+        Country.USA,
+        Country.CANADA,
+        Country.UK,
+        Country.AUSTRALIA,
+        Country.GERMANY,
+        Country.FRANCE,
+        Country.NETHERLANDS,
+        Country.ITALY,
+    ]:
+        if c not in stores_by_country:
+            stores_by_country[c] = [1]
+        
     return stores_by_country
+
 
 STORES_BY_COUNTRY = load_stores_by_country()
 ONLINE_STORE_KEY = 0
@@ -225,8 +300,17 @@ def generate_new_customer(country: Country) -> int:
 
     
     if country in [Country.USA, Country.CANADA, Country.AUSTRALIA]:
-        state_abbr = faker.state_abbr()
+        # Some Faker locales or versions may not expose `state_abbr()` directly on the
+        # generator. Use it if available; otherwise fall back to deriving an
+        # abbreviation from the state name to avoid AttributeError across versions.
         state_name = faker.state()
+        if hasattr(faker, "state_abbr") and callable(getattr(faker, "state_abbr")):
+            try:
+                state_abbr = faker.state_abbr()
+            except Exception:
+                state_abbr = (state_name[:2].upper() if state_name else "N/A")
+        else:
+            state_abbr = (state_name[:2].upper() if state_name else "N/A")
     else:
         state_abbr = "N/A"
         state_name = faker.city()  
