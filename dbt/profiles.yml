@@ -1,0 +1,13 @@
+electronics_data: 
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: YHJMPQK-EGC29279  
+      user: abdelzaher45
+      password: Oz@_1234567890
+      role: ACCOUNTADMIN
+      database: DATAWAREHOUSE_TEST
+      schema: TEST_SCH
+      warehouse: COMPUTE_WH  
+      threads: 4 
