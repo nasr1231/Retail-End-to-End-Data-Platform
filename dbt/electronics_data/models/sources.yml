@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: s3_sources
+    database: DATAWAREHOUSE_TEST
+    schema: TEST_SCH
+    tables:
+      - name: customers_ext
+      - name: data_dictionary_ext
+      - name: exchange_rates_ext
+      - name: sales_ext
+      - name: stores_ext
+      - name: products_ext
