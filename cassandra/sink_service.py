@@ -33,7 +33,7 @@ while not session:
         time.sleep(5)
 
 # ==========================================
-# 3. PREPARE SQL STATEMENTS (V2 - Updated Schema)
+# 3. PREPARE SQL STATEMENTS 
 # ==========================================
 logger.info("Preparing CQL Statements...")
 
@@ -48,7 +48,6 @@ insert_item_stmt = session.prepare("""
 """)
 
 # STREAM B: ORDERS
-# Added: customerkey, payment_method
 insert_order_stmt = session.prepare("""
     INSERT INTO sales_realtime.orders_financial_realtime 
     (currency_code, event_ts, order_group_id, total_items_count, 
