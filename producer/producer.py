@@ -453,7 +453,7 @@ def worker(wid: int):
 
         # CANCEL ?
         if random.random() < CANCEL_PROBABILITY:
-            time.sleep(random.uniform(0.1, 1.0))
+            # time.sleep(random.uniform(0.1, 1.0))
             for ev in events:
                 ev = ev.copy()
                 ev.update({
@@ -467,7 +467,7 @@ def worker(wid: int):
 
         # RETURN ?
         if random.random() < RETURN_PROBABILITY:
-            time.sleep(random.uniform(10, 60))
+            # time.sleep(random.uniform(10, 60))
             for ev in events:
                 ev = ev.copy()
                 ev.update({
@@ -479,9 +479,7 @@ def worker(wid: int):
                 })
                 producer.produce(topic=KAFKA_TOPIC, key=ev["order_serial"], value=ev, on_delivery=delivery_report)
 
-        producer.poll(0.01)
-
-        producer.flush()
+        producer.poll(0)
 
 
 # ==================== MAIN ====================
