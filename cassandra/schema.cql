@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS sales_realtime.orders_financial_realtime (
     is_return_flag int,
     is_cancel_flag int,
     max_lag_seconds int,
-    PRIMARY KEY ((currency_code), event_ts, order_group_id)
+    PRIMARY KEY ((store_country), event_ts, order_group_id)
 ) WITH CLUSTERING ORDER BY (event_ts DESC);
 
 
@@ -49,8 +49,7 @@ CREATE TABLE IF NOT EXISTS sales_realtime.orders_financial_realtime (
 CREATE INDEX IF NOT EXISTS idx_store_city ON sales_realtime.sales_items_realtime (store_city);
 
 CREATE INDEX IF NOT EXISTS channel_idx ON sales_realtime.sales_items_realtime (sales_channel);
-
-CREATE INDEX IF NOT EXISTS order_country_idx ON sales_realtime.orders_financial_realtime (store_country);
+-- CREATE INDEX IF NOT EXISTS order_country_idx ON sales_realtime.orders_financial_realtime (store_country);
 
 -- how to delete onld schema.cql from cassandra container: 
 -- docker exec -it cassandra cqlsh -e "DROP KEYSPACE sales_realtime;"
