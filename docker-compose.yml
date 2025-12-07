@@ -32,11 +32,14 @@ x-airflow-common: &airflow-common
   image: lp/airflow
   networks:
     - lp
-  user: "${AIRFLOW_UID}:50000"
+  user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
   volumes:
     - ./airflow/config:/opt/airflow/config
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./airflow/dbt:/opt/airflow/electronics_data_test
+    - airflow-data:/opt/airflow
 
 x-healthcheck:
   healthcheck: &healthcheck-common
@@ -77,7 +80,7 @@ services:
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
-        condition: service_completed_successfully
+        condition: service_started
     healthcheck:
       <<: *healthcheck-common
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
@@ -151,7 +154,7 @@ services:
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
-        condition: service_completed_successfully
+        condition: service_started
     healthcheck:
       <<: *healthcheck-common
       test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
@@ -163,7 +166,7 @@ services:
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
-        condition: service_completed_successfully
+        condition: service_started
     healthcheck:
       <<: *healthcheck-common
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
@@ -177,7 +180,7 @@ services:
       airflow-apiserver:
         condition: service_healthy
       airflow-init:
-        condition: service_completed_successfully
+        condition: service_started
     environment:
       <<: *airflow-common-env
       DUMB_INIT_SETSID: "0"
@@ -207,6 +210,65 @@ services:
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     networks:
       - lp
+
+  connect:
+    image: confluentinc/cp-kafka-connect:7.9.1
+    hostname: connect
+    container_name: connect
+    depends_on:
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: broker:29092
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_GROUP_ID: connect-cluster
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      
+      # Key & Value Converters
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081        
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      
+      # Plugin path
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components      
+      
+      # Performance & Reliability && Dead Letter Queue Configs
+      CONNECT_TASK_SHUTDOWN_GRACEFUL_TIMEOUT_MS: 30000
+      CONNECT_ERRORS_TOLERANCE: all
+      CONNECT_ERRORS_LOG_ENABLE: "true"
+      CONNECT_ERRORS_LOG_INCLUDE_MESSAGES: "true"
+
+      CONNECT_ERRORS_DEADLETTERQUEUE_TOPIC_NAME: dlq-sales-events
+      CONNECT_ERRORS_DEADLETTERQUEUE_TOPIC_REPLICATION_FACTOR: 1
+      CONNECT_ERRORS_DEADLETTERQUEUE_CONTEXT_HEADERS_ENABLE: "true"
+
+      # AWS credentials (set these in env/all.env or your environment)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+    volumes:
+      - ./connectors:/usr/share/confluent-hub-components
+      - ./env/aws.creds:/home/appuser/.aws/credentials/aws.creds
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/connectors"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - lp
+    restart: unless-stopped
+
   topic-creator:
     image: confluentinc/cp-kafka:7.9.1-1-ubi8
     depends_on:
@@ -512,3 +574,4 @@ volumes:
   spark_data:
   cassandra_data:
   grafana_data:
+  airflow-data:

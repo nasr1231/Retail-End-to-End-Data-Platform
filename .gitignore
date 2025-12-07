@@ -4,5 +4,5 @@ __pycache__/
 .env
 env/
 .ipynb_checkpoints
-airflow/
 checkpoints/
+connectors/confluentinc-kafka-connect-s3/

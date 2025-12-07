@@ -1,0 +1,34 @@
+{
+  "name": "s3-sales-events-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.s3.S3SinkConnector",
+    "tasks.max": "2",
+    "topics": "sales_events_avro",
+
+    "s3.bucket.name": "s3-kafka-raw-data-archive",
+    "s3.region": "eu-north-1",
+
+    "errors.tolerance": "all",
+    "errors.deadletterqueue.topic.name": "dlq-sales-events",
+    "errors.deadletterqueue.context.headers.enable": "true",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+
+    "format.class": "io.confluent.connect.s3.format.parquet.ParquetFormat",
+    "parquet.codec": "snappy",
+    "flush.size": "500",
+    "rotate.schedule.interval.ms": "2400000",
+
+    "path.format": "'year'=YYYY/'month'=MM/'day'=dd/'hour'=HH",
+    "locale": "en",
+    "timezone": "UTC",
+
+    "storage.class": "io.confluent.connect.s3.storage.S3Storage",    
+    "s3.credentials.provider.class": "software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider",
+    "s3.credentials.profile.name": "default",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081"
+  }
+}

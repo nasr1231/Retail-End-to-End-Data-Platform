@@ -300,17 +300,8 @@ def generate_new_customer(country: Country) -> int:
 
     
     if country in [Country.USA, Country.CANADA, Country.AUSTRALIA]:
-        # Some Faker locales or versions may not expose `state_abbr()` directly on the
-        # generator. Use it if available; otherwise fall back to deriving an
-        # abbreviation from the state name to avoid AttributeError across versions.
+        state_abbr = faker.state_abbr()
         state_name = faker.state()
-        if hasattr(faker, "state_abbr") and callable(getattr(faker, "state_abbr")):
-            try:
-                state_abbr = faker.state_abbr()
-            except Exception:
-                state_abbr = (state_name[:2].upper() if state_name else "N/A")
-        else:
-            state_abbr = (state_name[:2].upper() if state_name else "N/A")
     else:
         state_abbr = "N/A"
         state_name = faker.city()  
