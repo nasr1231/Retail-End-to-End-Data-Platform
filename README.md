@@ -4,18 +4,18 @@ An enterprise-grade Lambda architecture data platform built as an ITI Data Engin
 
 ## 📋 Table of Contents
 
-- [Business Context](#business-context)
-- [Architecture Overview](#architecture-overview)
-- [Problem Statement](#problem-statement)
-- [Solution Design](#solution-design)
-- [Project Structure](#project-structure)
-- [Technology Stack](#technology-stack)
-- [Installation & Setup](#installation--setup)
-- [Data Pipeline](#data-pipeline)
-- [Key Features](#key-features)
-- [Deliverables](#deliverables)
-- [Getting Started](#getting-started)
-- [Team](#team)
+- [Business Context](#-business-context)
+- [Architecture Overview](#-architecture-overview)
+- [Problem Statement](#-problem-statement)
+- [Solution Design](#-solution-design)
+- [Project Structure](#-project-structure)
+- [Technology Stack](#-technology-stack)
+- [Installation & Setup](#-installation--setup)
+- [Data Pipeline](#-data-pipeline)
+- [Key Features](#-key-features)
+- [Deliverables](#-deliverables)
+- [Getting Started](#-getting-started)
+- [Team](#-team)
 
 ---
 
