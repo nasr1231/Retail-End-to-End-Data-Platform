@@ -24,9 +24,9 @@ An enterprise-grade Lambda architecture data platform built as an ITI Data Engin
 **Tech Shop** is a mid-sized international electronics retailer facing critical operational challenges:
 
 - **67 stores** across **8 countries**
-- **$55M** in annual sales
+- **$55M** in sales
 - **15,000+ customers**
-- **26,000+ orders** processed annually
+- **26,000+ orders** processed across 5 years
 
 ### Business Pain Points
 
@@ -512,17 +512,7 @@ This project was developed by:
 - **Omar Khaled** - Business Intelligence & Analytics
 
 
-**Institution:** Information Technology Institute (ITI), Data Engineering Track, R1 2025
-
----
-
-## 📚 Additional Resources
-
-- [dbt Documentation](dbt/README.md)
-- [Kafka Setup Guide](connectors/README.md)
-- [Spark Streaming Configuration](spark/README.md)
-- [Airflow DAGs Documentation](airflow/README.md)
-- [Architecture Deep Dive](docs/ARCHITECTURE.md)
+**Institution:** Information Technology Institute (ITI), Data Engineering Intensive Track, R1 2025
 
 ---
 
